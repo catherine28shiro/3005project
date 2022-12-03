@@ -1,2 +1,9 @@
 # 3005_project
-Please install psycopg2 and tkinter module and running using python3
+Please install:
+
+1. psycopg2 
+2. tkinter module 
+4. openpyxl 
+5. faker
+
+
