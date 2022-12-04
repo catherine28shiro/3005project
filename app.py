@@ -405,6 +405,7 @@ class BookPage(Frame):
             self.controller.switch_frame('UserLoginPage')
         else:
             cid = self.controller.cid
+            # checking if the customer has added this book to cart before if used to add it, update the amount by add the new amount customer entered in book page
             cur.execute('select * from SHOPPING_CART where cid=%s and bid=%s',(cid,self.bid))
             bookInCart = cur.fetchall()
             print(bookInCart)
@@ -672,7 +673,7 @@ class adminFirstPage(Frame):
             gid = cur.fetchall()[0][0]
             cur.execute('INSERT INTO genre VALUES (%s,%s)',(self.genre_.get(),gid))
             conn.commit()
-            messagebox.showinfo("Success","Author saved")
+            messagebox.showinfo("Success","Genre saved")
         self.genre_entry.delete(0,END)
 
     def addUcost(self):
@@ -965,7 +966,7 @@ class OrderfromPubPage(Frame):
         scrollbar1.configure(command=self.record.yview)
         scrollbar2.configure(command=self.record.xview)
 
-        cur.execute("select * from book_order_recoerd order by date asc;")
+        cur.execute("select * from book_order_record order by date asc;")
         records = cur.fetchall()
         self.record.insert(END,"Publisher".ljust(50)+"email".ljust(40)+"Book Title".ljust(200)+"ISBN".ljust(20)+"Amount Ordered".ljust(20)+"Date Ordered".ljust(20))
         for a in records:           

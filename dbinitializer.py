@@ -69,7 +69,7 @@ def readFile():
 publisher_set,genre_set,author_set,bookshelf=readFile()
 
 def ddl():
-    print('ddl')
+    print('doing ddl...')
     #DDL
     create_utility_table='''create table IF NOT EXISTS UTILITY
         (MONTH          varchar(2)      NOT NULL UNIQUE,
@@ -113,7 +113,7 @@ def ddl():
     );'''
     create_author_table='''create table IF NOT EXISTS AUTHOR
         (AID    int         NOT NULL UNIQUE,
-        NAME    varchar(50) NOT NULL,
+        NAME    varchar(50) NOT NULL UNIQUE,
         primary key (AID)
     );'''
     create_write_table='''create table IF NOT EXISTS WRITE
@@ -138,12 +138,12 @@ def ddl():
         foreign key (BID) references BOOK (BID) ON DELETE CASCADE
     );'''
     create_card_table='''create table IF NOT EXISTS PAYMENT_CARD
-        (CARD_NUM        varchar(16),
-        CVV             varchar(3),
-        EXP_DATE        varchar(5),
-        BILL_NAME       varchar(50),
-        BILL_ADDRESS    varchar(100),
-        PAYMENT_TYPE    varchar(10),
+        (CARD_NUM        varchar(16)    unique not null,
+        CVV             varchar(3)      NOT NULL,
+        EXP_DATE        varchar(5)      NOT NULL,
+        BILL_NAME       varchar(50)     NOT NULL,
+        BILL_ADDRESS    varchar(100)    NOT NULL,
+        PAYMENT_TYPE    varchar(10)     NOT NULL,
         primary key (CARD_NUM)
     );'''
     create_order_table='''create table IF NOT EXISTS BOOK_ORDER
@@ -180,7 +180,8 @@ def ddl():
         foreign key (BID) references BOOK (BID) ON DELETE CASCADE,
         foreign key (PID) references PUBLISHER (PID) ON DELETE CASCADE
     );'''
-  
+    
+    print("creating tables if exists...")
     cur.execute('drop table IF EXISTS PUBLISHER CASCADE')
     cur.execute('drop table IF EXISTS BOOK CASCADE')
     cur.execute('drop table IF EXISTS AUTHOR CASCADE')
@@ -195,7 +196,7 @@ def ddl():
     cur.execute('drop table IF EXISTS PAYMENT_CARD CASCADE')
     cur.execute('drop table IF EXISTS ORDER_FROM_PUBLISHER CASCADE')
 
- 
+    print("creating tables...")
     cur.execute(create_publisher_table)
     cur.execute(create_book_table)
     cur.execute(create_genre_table)
@@ -213,6 +214,7 @@ def ddl():
     conn.commit()
 
 def createSequence():
+    print("creating sequence...")
     cur.execute('''CREATE SEQUENCE pidcreater
     AS BIGINT
     INCREMENT BY 1
@@ -257,6 +259,7 @@ def createSequence():
     ''')  
 def removeData():
     #remove data from all the tables
+    print("deleting all the data in tables")
     cur.execute('delete from publisher')
     cur.execute('delete from genre')
     cur.execute('delete from author')
@@ -273,37 +276,45 @@ def removeData():
 
 def dml():
     # DML
+    print("doing dml...")
     removeData()
     dropSequence()
     createSequence()
 
     # publisher table dml
+    print("inserting publisher...")
     fake = Faker(['en-CA'])  
     insert_publisher = '''INSERT INTO PUBLISHER VALUES (%s,%s,%s,%s,%s,%s);'''
     publisher_values = []
     for p in publisher_set:
         cur.execute("select nextval('pidcreater')")
         pid = cur.fetchall()[0][0]
+        print(pid)
         publisher = (p,fake.address(),fakeEmail(p),fake.phone_number(),fakeBank(),pid)
         publisher_values.append(publisher) 
     for p in publisher_values:
         cur.execute(insert_publisher,p) 
 
     #genre table dml 
+    print("inserting genre...")
     insert_genre = '''INSERT INTO GENRE VALUES (%s, %s);'''
     for g in genre_set:
         cur.execute("select nextval('gidcreater')")
         gid = cur.fetchall()[0][0]
+        print(gid)
         cur.execute(insert_genre,(g,gid))
 
     #author table dml 
+    print("inserting author...")
     insert_author = '''INSERT INTO AUTHOR VALUES (%s,%s)'''
     for a in author_set:
         cur.execute("select nextval('aidcreater')")
         aid = cur.fetchall()[0][0]
+        print(aid)
         cur.execute(insert_author,(aid,a))
 
     #book/typeof/write table dml
+    print("inserting book...")
     for b in bookshelf:
         cur.execute("select nextval('bidcreater')")
         bid = cur.fetchall()[0][0]
@@ -330,6 +341,7 @@ def dml():
     conn.commit()
 
     # add in about 500 fake customer
+    print("inserting customer...")
     names=set()
     for i in range(500):
         names.add(Faker().user_name())
@@ -342,21 +354,10 @@ def dml():
     # the last cid inserted
     CID = cid
     conn.commit()
-    # cur.execute('delete from book_order')
-    # cur.execute('delete from contain')
-    # cur.execute('delete from utility')
-    # cur.execute("delete from SHOPPING_CART")
-    # cur.execute("delete from ORDER_FROM_PUBLISHER")
-    # # add in fake order from Januray to December
-    # CID=500496
-    # BID=400606
-    # cur.execute('DROP SEQUENCE IF EXISTS oidcreater CASCADE;')
-    # cur.execute('''CREATE SEQUENCE oidcreater
-    # AS BIGINT
-    # INCREMENT BY 1
-    # MINVALUE 600001
-    # NO MAXVALUE;
-    # ''')  
+
+
+    # add in 3000 order data
+    print("inserting order...")
     fakeA = Faker(['en-CA'])
     fake = Faker()
     month = 1
@@ -374,7 +375,6 @@ def dml():
             day=28
         else:
             day=9
-        print(month)
 
 
         # add card
@@ -427,39 +427,29 @@ def dml():
         for b in bookcart:
             # update the storage
             amount = randint(1,3)
-            print(amount)
+
             cur.execute('select storage from book where bid=%s',(b,))
             storage = cur.fetchall()[0][0]
             if storage < amount:
                 continue
             storage -= amount
-            print(b)
-            print(f"before:{storage}")
+
             cur.execute('update book set storage = %s where bid=%s',(storage,b)) 
-            cur.execute('insert into contain values (%s,%s,%s)',(oid,b,amount))
-            
-            cur.execute('''SELECT amount_sold_per_month.amount AS amount
-                from amount_sold_per_month, book
-                where amount_sold_per_month.month = TO_CHAR(date_trunc('month', %s - interval '1' month), 'MM') AND amount_sold_per_month.bid = %s''',(fdate,b))
-            last = cur.fetchall()
-            if last:
-                print(f"last_month :{last[0][0]}")
-            else:
-                print(last)
-            cur.execute('select storage from book where bid=%s',(b,))
-            storage = cur.fetchall()[0][0]
-            print(f"storage :{storage}")
-                    
+            cur.execute('insert into contain values (%s,%s,%s)',(oid,b,amount))                   
         orders+=1
+
     # add fake utility to bookstore db
+    print("inserting utility...")
     month=['01','02','03','04','05','06','07','08','09','10','11','12']
     for m in month:
+        print(m)
         #assume the utility per month is 1000.00 to 2000.00
         cost = randrange(100000,200000)/100
         cur.execute('insert into utility values (%s,%s)',(m,cost))  
     conn.commit()
 
 def dropMaterializeView():
+    print("dropping materialize view...")
     cur.execute('DROP MATERIALIZED VIEW IF EXISTS ct CASCADE;' )
     cur.execute('DROP MATERIALIZED VIEW IF EXISTS book_in_order CASCADE;' )
     cur.execute('DROP MATERIALIZED VIEW IF EXISTS sales_per_author CASCADE;' )
@@ -468,9 +458,10 @@ def dropMaterializeView():
     cur.execute('DROP MATERIALIZED VIEW IF EXISTS expenditure CASCADE;' )
     cur.execute('DROP MATERIALIZED VIEW IF EXISTS sales_vs_expenditure CASCADE;' )
     cur.execute('DROP MATERIALIZED VIEW IF EXISTS amount_sold_per_month CASCADE;' )
-    cur.execute('DROP MATERIALIZED VIEW IF EXISTS book_order_recoerd CASCADE;' )
+    cur.execute('DROP MATERIALIZED VIEW IF EXISTS book_order_record CASCADE;' )
     
 def refreshMaterializeView():
+    print("refreshing materialize view...")
     cur.execute('REFRESH MATERIALIZED VIEW ct;')
     cur.execute('REFRESH MATERIALIZED VIEW book_in_order;')
     cur.execute('REFRESH MATERIALIZED VIEW sales_per_author;')
@@ -479,9 +470,10 @@ def refreshMaterializeView():
     cur.execute('REFRESH MATERIALIZED VIEW expenditure;')
     cur.execute('REFRESH MATERIALIZED VIEW sales_vs_expenditure;')
     cur.execute('REFRESH MATERIALIZED VIEW amount_sold_per_month;')
-    cur.execute('REFRESH MATERIALIZED VIEW book_order_recoerd;')
+    cur.execute('REFRESH MATERIALIZED VIEW book_order_record;')
     
 def dropSequence():
+    print("dropping sequence...")
     cur.execute('DROP SEQUENCE IF EXISTS pidcreater CASCADE;')
     cur.execute('DROP SEQUENCE IF EXISTS gidcreater CASCADE;')
     cur.execute('DROP SEQUENCE IF EXISTS aidcreater CASCADE;')
@@ -492,6 +484,7 @@ def dropSequence():
     
 
 def createMaterializeView():
+    print("creating materialize view...")
     # create materialize view
     cur.execute('''CREATE MATERIALIZED VIEW ct 
     AS select book.*,author.aid,author.name as Aname,genre.*,publisher.name as pname from book, write,typeof,genre,author,publisher
@@ -577,7 +570,7 @@ def createMaterializeView():
 
     # this shows the details of each order placed with publisher when book storage<10, 
     # including book title ISBN publisher email publisher name
-    cur.execute('''CREATE MATERIALIZED VIEW book_order_recoerd AS 
+    cur.execute('''CREATE MATERIALIZED VIEW book_order_record AS 
     select publisher.name as pname, publisher.email as pemail, book.title as title, 
     book.ISBN as ISBN, ORDER_FROM_PUBLISHER.order_amount as amount, ORDER_FROM_PUBLISHER.date as date
     from publisher, book, ORDER_FROM_PUBLISHER
@@ -587,52 +580,58 @@ def createMaterializeView():
 
 # order new book from publisher
 def trigger_function():
+    print("creating trigger function")
     cur.execute('''CREATE FUNCTION check_book_storage()
         returns TRIGGER
         language plpgsql
         AS
         $$
-        DECLARE
-            _amount int := (SELECT amount_sold_per_month.amount 
-                from amount_sold_per_month,(SELECT BOOK_ORDER.SDATE AS DATE FROM BOOK_ORDER WHERE BOOK_ORDER.OID = NEW.OID) AS SDATE
-                where amount_sold_per_month.month = TO_CHAR(date_trunc('month', SDATE.DATE - interval '1' month), 'MM') AND amount_sold_per_month.bid = NEW.bid); 
-                
-        begin              
-            IF (SELECT BOOK.STORAGE
-                FROM BOOK
-                WHERE BOOK.BID = NEW.BID) < 20
-            THEN
-                --order from publisher
-                WITH SDATE AS
-                (SELECT BOOK_ORDER.SDATE AS DATE FROM BOOK_ORDER
-                WHERE BOOK_ORDER.OID = NEW.OID)              
-                INSERT INTO ORDER_FROM_PUBLISHER 
-                SELECT 
-                    nextval('poidcreater'),
-                    amount_sold_per_month.amount,
-                    pid_table.pid,
-                    NEW.bid,
-                    SDATE.DATE 
-                from amount_sold_per_month,(select pid from book where book.bid = new.bid) as pid_table, SDATE
-                where amount_sold_per_month.month = TO_CHAR(date_trunc('month', SDATE.DATE - interval '1' month), 'MM') and
-                amount_sold_per_month.bid = NEW.bid;
-            
+        DECLARE _amount int;
+        begin 
+        IF EXISTS (SELECT amount_sold_per_month.amount AS amount
+            from amount_sold_per_month,(SELECT BOOK_ORDER.SDATE AS DATE FROM BOOK_ORDER WHERE BOOK_ORDER.OID = NEW.OID) AS SDATE
+            where amount_sold_per_month.month = TO_CHAR(date_trunc('month', SDATE.DATE - interval '1' month), 'MM') AND amount_sold_per_month.bid = NEW.bid)
+        THEN
+            _amount := (SELECT amount_sold_per_month.amount 
+            from amount_sold_per_month,(SELECT BOOK_ORDER.SDATE AS DATE FROM BOOK_ORDER WHERE BOOK_ORDER.OID = NEW.OID) AS SDATE
+            where amount_sold_per_month.month = TO_CHAR(date_trunc('month', SDATE.DATE - interval '1' month), 'MM') AND amount_sold_per_month.bid = NEW.bid); 
+        ELSE
+            _amount := 5;
+        END IF;   
 
-                --update the storage of book
-                IF EXISTS (SELECT amount_sold_per_month.amount AS amount
-                from amount_sold_per_month,(SELECT BOOK_ORDER.SDATE AS DATE FROM BOOK_ORDER WHERE BOOK_ORDER.OID = NEW.OID) AS SDATE
-                where amount_sold_per_month.month = TO_CHAR(date_trunc('month', SDATE.DATE - interval '1' month), 'MM') AND amount_sold_per_month.bid = NEW.bid)
-                THEN UPDATE BOOK SET STORAGE = storage + _amount WHERE BOOK.BID = NEW.BID;
-                ELSE UPDATE BOOK SET STORAGE = storage + 5 WHERE BOOK.BID = NEW.BID;
-                END IF;
+                     
+        IF (SELECT BOOK.STORAGE
+            FROM BOOK
+            WHERE BOOK.BID = NEW.BID) < 20
+        THEN
+            --order from publisher
+            WITH SDATE AS
+            (SELECT BOOK_ORDER.SDATE AS DATE FROM BOOK_ORDER
+            WHERE BOOK_ORDER.OID = NEW.OID)              
+            INSERT INTO ORDER_FROM_PUBLISHER 
+            SELECT 
+                nextval('poidcreater'),
+                amount_sold_per_month.amount,
+                pid_table.pid,
+                NEW.bid,
+                SDATE.DATE 
+            from amount_sold_per_month,(select pid from book where book.bid = new.bid) as pid_table, SDATE
+            where amount_sold_per_month.month = TO_CHAR(date_trunc('month', SDATE.DATE - interval '1' month), 'MM') and
+            amount_sold_per_month.bid = NEW.bid;
+        
+
+            --update the storage of book         
+            UPDATE BOOK SET STORAGE = storage + _amount WHERE BOOK.BID = NEW.BID;
+
+        END IF;
 
                   
-        END IF;
         RETURN NEW;
         end;
         $$
         ''')
 def trigger():
+    print("creating trigger")
     cur.execute('''CREATE TRIGGER ORDER_PLACE
             AFTER INSERT
             ON CONTAIN
@@ -642,6 +641,7 @@ def trigger():
 
 # drop trigger and trigger function
 def dropTrigger():
+    print("dropping trigger...")
     cur.execute('''DROP TRIGGER IF EXISTS book_update 
         ON BOOK CASCADE;''')
     cur.execute('DROP FUNCTION IF EXISTS check_book_storage() CASCADE;')
@@ -660,12 +660,12 @@ try:
     ddl()
     dropMaterializeView()
     createMaterializeView()
-    # #drop trigger and recreate trigger
+    #drop trigger and recreate trigger
     dropTrigger()
     trigger_function()
     trigger()
-    # conn.commit()
-    # # uncomment this if want to delete and reinsert intial fake data into database
+    conn.commit()
+    # uncomment this if want to delete and reinsert intial fake data into database
     dml()   
     # drop materialize view and recreate materialize view
     refreshMaterializeView()
