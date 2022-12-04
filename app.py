@@ -23,7 +23,7 @@ def refreshMaterializeView():
     cur.execute('REFRESH MATERIALIZED VIEW expenditure;')
     cur.execute('REFRESH MATERIALIZED VIEW sales_vs_expenditure;')
     cur.execute('REFRESH MATERIALIZED VIEW amount_sold_per_month;')
-    cur.execute('REFRESH MATERIALIZED VIEW book_order_recoerd;')
+    cur.execute('REFRESH MATERIALIZED VIEW book_order_record;')
 
 ##########################################
 #   the main app controller              #
@@ -72,7 +72,6 @@ class BookStoreAppGUI(Tk):
 
     # switch between frames
     def switch_frame(self,name):
-        print(name)
         page = self.frame_list[name]
         page.tkraise()
         if name == 'BookPage' or name=='CartPage' or name =='CheckoutPage' or name=='OrderPage' or name=='GetOrderNumberPage' or name=='reportThirdPage' or name=='OrderfromPubPage':
@@ -176,7 +175,6 @@ class UserRegPage(Frame):
 
     def register(self):
         username = self.username.get()
-        print(username)
         cur.execute('select cid from customer where username=%s',(username,))
         if cur.fetchall():
             messagebox.showerror("Invalid username","Duplicate username, please try another username!")
@@ -314,8 +312,6 @@ class FirstPage(Frame):
         detail_btn.grid(sticky=W,row=10,column=1,pady=20)
 
     def searchBook(self,title,author,ISBN,genre):
-        print('clicked')
-        print(title)
         # clean the list box first   
         self.result.delete(0,END)
 
@@ -330,7 +326,6 @@ class FirstPage(Frame):
                     ct.genre_type ilike %s and 
                     ct.Aname ilike %s''',('%'+title+'%','%'+genre+'%','%'+author+'%'))
         for book in cur.fetchall():
-                print(book)
                 self.result.insert(END,book[0])
         return
         
@@ -369,7 +364,6 @@ class BookPage(Frame):
         book = cur.fetchall()
         self.bid = book[0][5]
         self.storage = book[0][4]
-        print(self.storage)
         genres = ''
         authors=''
         for i in range(len(book)):
@@ -408,7 +402,6 @@ class BookPage(Frame):
             # checking if the customer has added this book to cart before if used to add it, update the amount by add the new amount customer entered in book page
             cur.execute('select * from SHOPPING_CART where cid=%s and bid=%s',(cid,self.bid))
             bookInCart = cur.fetchall()
-            print(bookInCart)
             if bookInCart:
                 amount = bookInCart[0][2]
                 number = int(self.amount.get()) + amount
@@ -445,7 +438,6 @@ class CartPage(Frame):
         cur.execute('select * from shopping_cart where cid =%s',(self.controller.cid,))
         books = cur.fetchall()
         self.controller.cart = books
-        print(books)
         frame  = Frame(self)
         frame.grid(row=2,column=1,rowspan=4,columnspan=4)
         #scroll bar
@@ -596,7 +588,6 @@ class OrderPage(Frame):
         scrollbarx.configure(command=self.booklist.xview)
         cur.execute("select title,carrier,status,amount from book_in_order where oid=%s",(self.controller.oid,))
         books = cur.fetchall()
-        print(books)
         for b in books:
             self.booklist.insert(END,b[0].ljust(100)+"   Amount: "+str(b[3]))
         self.carrier = Label(self,text="Carrier: "+ books[0][1],font=self.controller.Tfont)
@@ -952,7 +943,7 @@ class OrderfromPubPage(Frame):
         self.controller=controller
         
     def refresh(self):
-        cur.execute('REFRESH MATERIALIZED VIEW book_order_recoerd;')
+        cur.execute('REFRESH MATERIALIZED VIEW book_order_record;')
         conn.commit()
         Label(self,text="Past Order Placed to Publishers",font=("Helvetica",'20')).grid(column=0,row=0,padx=20,pady=20,sticky=W)
         self.frame= Frame(self)
