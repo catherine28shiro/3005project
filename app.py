@@ -1,3 +1,6 @@
+# STUDENT ID:101209708
+# NAME: Catherine Li
+
 from tkinter import *
 from tkinter import messagebox
 import tkinter.font as TkFont
@@ -60,10 +63,10 @@ class BookStoreAppGUI(Tk):
 
         # create all the frames from each page class CartPage,BookPage,CheckoutPage,\
         #     OrderPage,TrackPage,AdminPage,ReportPage,AdminLoginPage
-        for p in (CartPage,FirstPage,AdminLoginPage,UserLoginPage,BookPage,UserRegPage,CheckoutPage,OrderPage,\
+        for page in (CartPage,FirstPage,AdminLoginPage,UserLoginPage,BookPage,UserRegPage,CheckoutPage,OrderPage,\
             GetOrderNumberPage,adminFirstPage,adminSecondPage,reportFirstPage,reportSecondPage,reportThirdPage,OrderfromPubPage):
-            name = p.__name__
-            frame = p(parent=container,controller=self)
+            name = page.__name__
+            frame = page(parent=container,controller=self)
             frame.grid(row=0,column=0,sticky="nsew")
             self.frame_list[name] = frame
 
@@ -773,6 +776,7 @@ class adminSecondPage(Frame):
         if cur.fetchall():
             messagebox.showerror("Error","Book with this title has been added")
         elif self.book_title.get()=='' or len(self.book_ISBN.get()) !=13:
+
             messagebox.showerror("Error","Please enter title or correct ISBN")
         else:
             cur.execute('select * from book where ISBN = %s',(self.book_ISBN.get(),))
@@ -793,9 +797,10 @@ class adminSecondPage(Frame):
                     # assign a new id to this book
                     cur.execute("select nextval('bidcreater')")
                     bid = cur.fetchall()[0][0]
-                    authors = self.book_author.get().replace(" , ", ",").split(",")
+                    authors = self.book_author.get().split(",")
                     aid_list=[]
                     for a in authors:
+                        a=a.strip()
                         cur.execute('select aid from author where name ILIKE %s', (a,))
                         aid = cur.fetchall()
                         if aid:
@@ -811,11 +816,14 @@ class adminSecondPage(Frame):
                     
                     # genre
 
-                    genres = self.book_genre.get().replace(" , ", ",").split(",")
+                    genres = self.book_genre.get().split(",")
                     gid_list=[]
                     for g in genres:
+                        g=g.strip()
+
                         cur.execute('select gid from genre where genre_type ILIKE %s', (g,))
                         gid = cur.fetchall()
+
                         if gid:
                             gid=gid[0][0]
                         else:
@@ -826,9 +834,9 @@ class adminSecondPage(Frame):
                             messagebox.showinfo("success","new genre has been added")
                             conn.commit()
                         gid_list.append(gid)
-                    percent = float(self.addpercent)
+                    percent = float(self.addpercent.get())
                     #add other infomations for this book
-                    cur.execute('INSERT INTO BOOK VALUES (%s,%s,%s,%s,%s,%s,%s)',(self.book_title.get(),price,pages,self.book_ISBN.get(),storage,bid,pid,percent))
+                    cur.execute('INSERT INTO BOOK VALUES (%s,%s,%s,%s,%s,%s,%s,%s)',(self.book_title.get(),price,pages,self.book_ISBN.get(),storage,bid,pid,percent))
                     conn.commit()
                     # map authors to this book
                     for a in aid_list:
@@ -837,17 +845,19 @@ class adminSecondPage(Frame):
                     for g in gid_list:
                         cur.execute('INSERT INTO TYPEOF VALUES (%s,%s)',(g,bid))
                         conn.commit()
+                        refreshMaterializeView()
                     messagebox.showinfo("Success","This book has been adde to database")
+                    self.addtitle.delete(0,END)
+                    self.addISBN.delete(0,END)
+                    self.addprice.delete(0,END)
+                    self.addstorage.delete(0,END)
+                    self.addpage.delete(0,END)
+                    self.publisher_entry.delete(0,END)
+                    self.author_entry.delete(0,END)
+                    self.genre_entry.delete(0,END)  
                 else:
                     messagebox.showwarning("Warning","Please add this publisher first!")
-        self.addtitle.delete(0,END)
-        self.addISBN.delete(0,END)
-        self.addprice.delete(0,END)
-        self.addstorage.delete(0,END)
-        self.addpage.delete(0,END)
-        self.publisher_entry.delete(0,END)
-        self.author_entry.delete(0,END)
-        self.genre_entry.delete(0,END)    
+  
 
     def serachDelteBook(self,title,ISBN):   
         # clean the list box first   
@@ -869,6 +879,8 @@ class adminSecondPage(Frame):
             title = self.delResult.get(values[0])
             messagebox.askquestion("question","Are you sure to delete this book?")
             cur.execute('delete from book where title=%s',(title,))
+            conn.commit()
+            refreshMaterializeView()
             messagebox.showinfo("success","book has been deleted")
         else:
             messagebox.showwarning("Error", "Warning:Please select a book to delete")
@@ -890,6 +902,7 @@ class adminSecondPage(Frame):
         self.book_page=StringVar()
         self.book_storage=StringVar()
         self.book_genre=StringVar()
+        self.book_percent=StringVar()
         Label(self,text="Book Title:",font=("Helvetica","14")).grid(column=0,row=3,padx=20,sticky=W,pady=5)
         self.addtitle=Entry(self,textvariable=self.book_title,width=30)
         self.addtitle.grid(column=1,row=3,sticky=W,pady=5)
@@ -906,7 +919,7 @@ class adminSecondPage(Frame):
         self.addstorage=Entry(self,textvariable=self.book_storage,width=30)
         self.addstorage.grid(column=1,row=5,sticky=W,pady=5)
         Label(self,text="percentage to publisher(in form of 0.xx) :",font=("Helvetica","14"),wraplength=250).grid(column=2,row=5,sticky=W,pady=5,padx=20)
-        self.addpercent=Entry(self,textvariable=self.book_storage,width=30)
+        self.addpercent=Entry(self,textvariable=self.book_percent,width=30)
         self.addpercent.grid(column=3,row=5,sticky=W,pady=5)
 
         Label(self,text="Publisher:",font=("Helvetica","14")).grid(column=0,row=6,sticky=W,pady=5,padx=20)

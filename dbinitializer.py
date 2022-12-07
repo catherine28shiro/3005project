@@ -1,3 +1,5 @@
+# STUDENT ID:101209708
+# NAME: Catherine Li
 import psycopg2
 from faker import Faker
 from random import randint, randrange
