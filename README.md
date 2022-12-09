@@ -22,3 +22,4 @@ Running dbinitializer.py takes very long time(about 30 minutes) since it need to
 
 To use this desktop app please run the file app.py under python environment and install the packaegs listed.
 If app.py runs successfully, you will see a tkinter app window showing on your screen, and "database connected" print put out the terminal.
+In the admin login page, the admin username and password are both “admin”
